@@ -1,165 +1,129 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  Calculator, 
   Dumbbell, 
-  CalendarDays, 
   Sofa, 
   Briefcase, 
   Armchair, 
   CheckCircle2, 
-  Circle,
-  Flame,
-  Droplets,
-  Activity,
-  ArrowRight
+  Circle, 
+  Flame, 
+  Play, 
+  Volume2, 
+  VolumeX, 
+  RotateCcw, 
+  Eye,
+  SlidersHorizontal,
+  Target
 } from 'lucide-react';
-
-const WORKOUT_SCHEDULE = [
-  {
-    id: 'mon',
-    day: 'Monday',
-    focus: 'Heavy Chest',
-    exercises: [
-      { id: 'm1', name: 'Backpack Deficit Push-ups', sets: '4 sets of 8-12' },
-      { id: 'm2', name: 'Decline Push-ups (feet on couch)', sets: '3 sets to failure' },
-      { id: 'm3', name: 'Chair Dips', sets: '3 sets of 10' }
-    ]
-  },
-  {
-    id: 'tue',
-    day: 'Tuesday',
-    focus: 'Back & Core',
-    exercises: [
-      { id: 't1', name: 'Backpack Bent-over Rows', sets: '4 sets of 12' },
-      { id: 't2', name: 'Superman Holds', sets: '3 sets of 45s' },
-      { id: 't3', name: 'Plank', sets: '3 sets of 60s' }
-    ]
-  },
-  {
-    id: 'wed',
-    day: 'Wednesday',
-    focus: 'Legs',
-    exercises: [
-      { id: 'w1', name: 'Backpack Goblet Squats', sets: '4 sets of 12' },
-      { id: 'w2', name: 'Bulgarian Split Squats', sets: '3 sets of 10/leg' }
-    ]
-  },
-  {
-    id: 'thu',
-    day: 'Thursday',
-    focus: 'Fat Burn',
-    exercises: [
-      { id: 'th1', name: 'Brisk Walking / Jogging / High-Knees', sets: '30 continuous minutes' }
-    ]
-  },
-  {
-    id: 'fri',
-    day: 'Friday',
-    focus: 'Chest Volume',
-    exercises: [
-      { id: 'f1', name: 'Standard Push-ups', sets: '4 sets to failure' },
-      { id: 'f2', name: 'Incline Push-ups (hands on couch)', sets: '3 sets to failure' },
-      { id: 'f3', name: 'Diamond Push-ups', sets: '3 sets of 10' }
-    ]
-  },
-  {
-    id: 'sat',
-    day: 'Saturday',
-    focus: 'Core & HIIT',
-    exercises: [
-      { id: 's1', name: 'Bicycle Crunches', sets: '4 sets of 20' },
-      { id: 's2', name: 'Mountain Climbers', sets: '4 sets of 30s' },
-      { id: 's3', name: 'Burpees', sets: '3 sets of 15' }
-    ]
-  },
-  {
-    id: 'sun',
-    day: 'Sunday',
-    focus: 'Rest & Recovery',
-    exercises: [
-      { id: 'su1', name: 'Light Stretching & Mobility', sets: '15-20 minutes' }
-    ]
-  }
-];
-
-const EQUIPMENT_GUIDE = [
-  {
-    title: 'Heavy Backpack',
-    icon: <Briefcase className="w-8 h-8 text-emerald-400" />,
-    description: 'Fill with books or water bottles. Wear during push-ups and squats to force progressive overload without dumbbells.'
-  },
-  {
-    title: 'Two Sturdy Chairs',
-    icon: <Armchair className="w-8 h-8 text-emerald-400" />,
-    description: 'Place shoulder-width apart for dips, or use for deficit push-ups allowing a deeper stretch in the chest muscles.'
-  },
-  {
-    title: 'Couch or Bed',
-    icon: <Sofa className="w-8 h-8 text-emerald-400" />,
-    description: 'Elevate feet for Decline Push-ups (upper chest) or elevate hands for Incline Push-ups (lower chest).'
-  }
-];
+import confetti from 'canvas-confetti';
+import { getStructuredSchedule, EQUIPMENT_GUIDE } from './data/workoutData';
+import { getCurrentDayId, getCurrentWeekDates, formatCurrentDate } from './utils/dateUtils';
+import { sound } from './utils/audio';
+import ExerciseVisualizer from './components/ExerciseVisualizer';
+import RigorousWorkoutSession from './components/RigorousWorkoutSession';
+import BodyProfileModal from './components/BodyProfileModal';
 
 export default function App() {
-  // State for Calculator
-  const [calcInputs, setCalcInputs] = useState({
-    age: '',
-    weight: '',
-    height: '',
-    gender: 'male'
-  });
-  
-  const [calcResults, setCalcResults] = useState(null);
+  const [currentDateStr, setCurrentDateStr] = useState(formatCurrentDate());
+  const todayId = getCurrentDayId();
+  const weekDates = getCurrentWeekDates();
 
-  // State for Workout Checkboxes (Load from local storage if available)
+  // User Profile for 30-Day Recomp Transformation
+  const [userProfile, setUserProfile] = useState(() => {
+    try {
+      const saved = localStorage.getItem('infinityUserProfile');
+      return saved ? JSON.parse(saved) : {
+        isConfigured: true,
+        currentWeight: 96,
+        targetWeight: 89,
+        height: 176,
+        age: 28,
+        gender: 'male',
+        fitnessLevel: 'beginner',
+        focusArea: 'chest_belly',
+        activityLevel: 'sedentary',
+        dailyDeficit: 650,
+        targetCalories: 1850,
+        dailyProtein: 178,
+        dailyWaterLiters: '3.5',
+        projectedLossKg: 7.0
+      };
+    } catch {
+      return {
+        isConfigured: true,
+        currentWeight: 96,
+        targetWeight: 89,
+        height: 176,
+        age: 28,
+        gender: 'male',
+        fitnessLevel: 'beginner',
+        focusArea: 'chest_belly',
+        activityLevel: 'sedentary',
+        dailyDeficit: 650,
+        targetCalories: 1850,
+        dailyProtein: 178,
+        dailyWaterLiters: '3.5',
+        projectedLossKg: 7.0
+      };
+    }
+  });
+
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('infinityUserProfile', JSON.stringify(userProfile));
+    } catch {
+      // ignore
+    }
+  }, [userProfile]);
+
+  // Dynamically structure workouts based on user profile
+  const structuredSchedule = getStructuredSchedule(userProfile);
+
+  const [selectedDayId, setSelectedDayId] = useState(todayId);
+  const [isSessionOpen, setIsSessionOpen] = useState(false);
+  const [sessionDayId, setSessionDayId] = useState(todayId);
+  const [previewExercise, setPreviewExercise] = useState(null);
+  const [isSoundMuted, setIsSoundMuted] = useState(false);
+
+  // Local storage completed exercises
   const [completedExercises, setCompletedExercises] = useState(() => {
     try {
       const saved = localStorage.getItem('infinityRecompProgress');
       return saved ? JSON.parse(saved) : {};
-    } catch (e) {
+    } catch {
       return {};
     }
   });
 
-  // Save progress to local storage
   useEffect(() => {
-    localStorage.setItem('infinityRecompProgress', JSON.stringify(completedExercises));
+    try {
+      localStorage.setItem('infinityRecompProgress', JSON.stringify(completedExercises));
+    } catch {
+      // ignore
+    }
   }, [completedExercises]);
 
-  const handleCalculate = (e) => {
-    e.preventDefault();
-    const { age, weight, height, gender } = calcInputs;
-    
-    if (!age || !weight || !height) return;
-
-    const w = parseFloat(weight);
-    const h = parseFloat(height);
-    const a = parseFloat(age);
-
-    // Mifflin-St Jeor Equation for BMR
-    let bmr = (10 * w) + (6.25 * h) - (5 * a);
-    bmr += gender === 'male' ? 5 : -161;
-
-    // TDEE assuming lightly active multiplier (1.375) given the workout plan
-    const tdee = bmr * 1.375;
-    
-    setCalcResults({
-      maintenance: Math.round(tdee),
-      deficit: Math.round(tdee - 500),
-      protein: Math.round(w * 2)
-    });
-  };
-
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setCalcInputs(prev => ({ ...prev, [name]: value }));
-  };
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentDateStr(formatCurrentDate());
+    }, 60000);
+    return () => clearInterval(timer);
+  }, []);
 
   const toggleExercise = (exerciseId) => {
-    setCompletedExercises(prev => ({
-      ...prev,
-      [exerciseId]: !prev[exerciseId]
-    }));
+    const willBeDone = !completedExercises[exerciseId];
+    setCompletedExercises(prev => ({ ...prev, [exerciseId]: willBeDone }));
+
+    if (willBeDone) {
+      sound.playExerciseDone();
+      try {
+        confetti({ particleCount: 35, spread: 50, origin: { y: 0.8 } });
+      } catch {
+        // ignore
+      }
+    }
   };
 
   const getDayProgress = (dayExercises) => {
@@ -169,238 +133,457 @@ export default function App() {
   };
 
   const resetProgress = () => {
-    setCompletedExercises({});
+    if (window.confirm("Reset all checkmarks for this week?")) {
+      setCompletedExercises({});
+      sound.playTone(300, 0.15, 'sawtooth');
+    }
+  };
+
+  const toggleSound = () => {
+    const muted = sound.toggleMute();
+    setIsSoundMuted(muted);
+  };
+
+  const launchSession = (dayIdToLaunch) => {
+    setSessionDayId(dayIdToLaunch);
+    setIsSessionOpen(true);
+    sound.playTone(520, 0.1, 'triangle');
+  };
+
+  const activeDayPlan = structuredSchedule.find(d => d.id === selectedDayId) || structuredSchedule[0];
+  const activeDayDateObj = weekDates.find(w => w.dayId === selectedDayId);
+  const todayPlan = structuredSchedule.find(d => d.id === todayId) || structuredSchedule[0];
+  const todayDateObj = weekDates.find(w => w.dayId === todayId);
+
+  const totalWeeklyExercises = structuredSchedule.reduce((acc, d) => acc + d.exercises.length, 0);
+  const totalWeeklyCompleted = Object.values(completedExercises).filter(Boolean).length;
+  const overallWeekPercentage = Math.round((totalWeeklyCompleted / totalWeeklyExercises) * 100);
+
+  const getEquipmentIcon = (name) => {
+    if (name === 'Briefcase') return <Briefcase className="w-5 h-5 text-zinc-300" />;
+    if (name === 'Armchair') return <Armchair className="w-5 h-5 text-zinc-300" />;
+    return <Sofa className="w-5 h-5 text-zinc-300" />;
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-200 font-sans selection:bg-emerald-500 selection:text-slate-900">
+    <div className="min-h-screen bg-zinc-950 text-zinc-200 font-sans selection:bg-zinc-800 selection:text-white pb-16">
       
-      {/* Header */}
-      <header className="border-b border-slate-800 bg-slate-900/50 backdrop-blur-md sticky top-0 z-50">
-        <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center border border-emerald-500/20">
-              <Flame className="w-6 h-6 text-emerald-400" />
+      {/* 30-Day Body Assessment & Recomp Structuring Modal */}
+      {isProfileModalOpen && (
+        <BodyProfileModal
+          currentProfile={userProfile}
+          onSave={(updated) => {
+            setUserProfile(updated);
+            setIsProfileModalOpen(false);
+          }}
+          onClose={() => setIsProfileModalOpen(false)}
+        />
+      )}
+
+      {/* 1-Hour Rigorous Workout Session Modal */}
+      {isSessionOpen && (
+        <RigorousWorkoutSession
+          dayPlan={structuredSchedule.find(d => d.id === sessionDayId) || activeDayPlan}
+          dateInfo={weekDates.find(w => w.dayId === sessionDayId)}
+          completedExercises={completedExercises}
+          onToggleExercise={toggleExercise}
+          onClose={() => setIsSessionOpen(false)}
+        />
+      )}
+
+      {/* Inline Exercise Preview Modal */}
+      {previewExercise && (
+        <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
+          <div className="max-w-xl w-full bg-zinc-900 border border-zinc-700 rounded-xl p-5 space-y-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between pb-3 border-b border-zinc-800">
+              <h3 className="text-base font-bold text-white">{previewExercise.name}</h3>
+              <button
+                onClick={() => setPreviewExercise(null)}
+                className="p-1 rounded bg-zinc-800 text-zinc-400 hover:text-white cursor-pointer"
+              >
+                ✕
+              </button>
             </div>
-            <div>
-              <h1 className="text-xl font-bold tracking-tight text-white">Infinity Home Recomp</h1>
-              <p className="text-xs text-emerald-400 font-medium">30-Day Body Recomposition</p>
+
+            <ExerciseVisualizer
+              animationType={previewExercise.animationType}
+              name={previewExercise.name}
+              primaryMuscles={previewExercise.primaryMuscles}
+              secondaryMuscles={previewExercise.secondaryMuscles}
+              cues={previewExercise.cues}
+              equipment={previewExercise.equipment}
+              animGifUrl={previewExercise.animGifUrl}
+              realImages={previewExercise.realImages}
+              isScaledForBeginner={previewExercise.isScaledForBeginner}
+            />
+
+            <div className="flex justify-end gap-2 pt-2 border-t border-zinc-800 text-xs">
+              <button
+                onClick={() => setPreviewExercise(null)}
+                className="px-3 py-1.5 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-medium cursor-pointer"
+              >
+                Close
+              </button>
+              <button
+                onClick={() => {
+                  toggleExercise(previewExercise.id);
+                  setPreviewExercise(null);
+                }}
+                className="px-4 py-1.5 rounded bg-emerald-600 hover:bg-emerald-500 text-white font-bold cursor-pointer"
+              >
+                {completedExercises[previewExercise.id] ? 'Mark Incomplete' : 'Mark Done ✓'}
+              </button>
             </div>
           </div>
         </div>
-      </header>
+      )}
 
-      <main className="max-w-6xl mx-auto px-4 py-8 space-y-12">
-        
-        {/* Intro Section */}
-        <section className="text-center space-y-4 max-w-2xl mx-auto py-8">
-          <h2 className="text-3xl md:text-5xl font-extrabold text-white tracking-tight">
-            Build Muscle. <span className="text-emerald-400">Burn Fat.</span> No Gym Required.
-          </h2>
-          <p className="text-slate-400 text-lg leading-relaxed">
-            A comprehensive protocol combining a caloric deficit, high protein intake, and strategic bodyweight mechanics to build a prominent chest and shed belly fat.
-          </p>
-        </section>
-
-        {/* Nutrition Calculator Section */}
-        <section className="grid md:grid-cols-2 gap-6 items-start">
+      {/* Header */}
+      <header className="border-b border-zinc-800 bg-zinc-900 sticky top-0 z-40">
+        <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
           
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl">
-            <div className="flex items-center gap-3 mb-6">
-              <Calculator className="text-emerald-400" />
-              <h3 className="text-xl font-bold text-white">Nutrition Target Calculator</h3>
-            </div>
-            
-            <form onSubmit={handleCalculate} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Gender</label>
-                  <select 
-                    name="gender" 
-                    value={calcInputs.gender} 
-                    onChange={handleInputChange}
-                    className="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-emerald-500 transition-colors"
-                  >
-                    <option value="male">Male</option>
-                    <option value="female">Female</option>
-                  </select>
-                </div>
-                <div className="space-y-1">
-                  <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Age</label>
-                  <input 
-                    type="number" name="age" required min="15" max="100"
-                    value={calcInputs.age} onChange={handleInputChange}
-                    className="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-emerald-500 transition-colors"
-                    placeholder="e.g. 25"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Weight (kg)</label>
-                  <input 
-                    type="number" name="weight" required min="40" max="250"
-                    value={calcInputs.weight} onChange={handleInputChange}
-                    className="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-emerald-500 transition-colors"
-                    placeholder="e.g. 80"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Height (cm)</label>
-                  <input 
-                    type="number" name="height" required min="120" max="250"
-                    value={calcInputs.height} onChange={handleInputChange}
-                    className="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-emerald-500 transition-colors"
-                    placeholder="e.g. 175"
-                  />
-                </div>
-              </div>
-              <button 
-                type="submit"
-                className="w-full mt-4 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold py-3 px-4 rounded-lg flex items-center justify-center gap-2 transition-colors cursor-pointer"
-              >
-                Calculate Targets <ArrowRight className="w-5 h-5" />
-              </button>
-            </form>
-          </div>
-
-          {/* Calculator Results */}
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl h-full flex flex-col justify-center relative overflow-hidden">
-            {/* Decorative background accent */}
-            <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/5 rounded-full blur-3xl pointer-events-none"></div>
-
-            {calcResults ? (
-              <div className="space-y-6 relative z-10">
-                <div>
-                  <h4 className="text-slate-400 text-sm font-medium mb-1">Target for Fat Loss (TDEE - 500)</h4>
-                  <div className="flex items-baseline gap-2">
-                    <span className="text-5xl font-extrabold text-white">{calcResults.deficit}</span>
-                    <span className="text-slate-400">kcal / day</span>
-                  </div>
-                  <p className="text-xs text-slate-500 mt-2">Maintenance TDEE: {calcResults.maintenance} kcal</p>
-                </div>
-                
-                <div className="h-px w-full bg-slate-800"></div>
-
-                <div>
-                  <h4 className="text-slate-400 text-sm font-medium mb-1 flex items-center gap-2">
-                    <Droplets className="w-4 h-4 text-emerald-400" /> Daily Protein Goal
-                  </h4>
-                  <div className="flex items-baseline gap-2">
-                    <span className="text-4xl font-extrabold text-white">{calcResults.protein}</span>
-                    <span className="text-slate-400">grams</span>
-                  </div>
-                  <p className="text-xs text-slate-500 mt-2">Based on 2g per kg of body weight.</p>
-                </div>
-              </div>
-            ) : (
-              <div className="flex flex-col items-center justify-center h-full text-slate-500 text-center space-y-3 relative z-10 py-12">
-                <Activity className="w-12 h-12 opacity-50" />
-                <p>Enter your metrics to calculate your precise daily fat loss and protein targets.</p>
-              </div>
-            )}
-          </div>
-        </section>
-
-        {/* Household Arsenal Section */}
-        <section className="space-y-6">
           <div className="flex items-center gap-3">
-            <Dumbbell className="text-emerald-400 w-6 h-6" />
-            <h3 className="text-2xl font-bold text-white">The Household Arsenal</h3>
-          </div>
-          <div className="grid md:grid-cols-3 gap-4">
-            {EQUIPMENT_GUIDE.map((item, idx) => (
-              <div key={idx} className="bg-slate-900 border border-slate-800 p-6 rounded-xl hover:border-slate-700 transition-colors group">
-                <div className="mb-4 p-3 bg-slate-800/50 rounded-lg inline-block group-hover:scale-110 transition-transform">
-                  {item.icon}
-                </div>
-                <h4 className="text-lg font-bold text-white mb-2">{item.title}</h4>
-                <p className="text-sm text-slate-400 leading-relaxed">{item.description}</p>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        {/* Weekly Recomp Protocol Section */}
-        <section className="space-y-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <CalendarDays className="text-emerald-400 w-6 h-6" />
-              <h3 className="text-2xl font-bold text-white">Weekly Recomp Protocol</h3>
+            <div className="w-8 h-8 rounded bg-zinc-800 flex items-center justify-center border border-zinc-700">
+              <Flame className="w-4 h-4 text-emerald-400" />
             </div>
-            <button 
-              onClick={resetProgress}
-              className="text-xs font-semibold text-slate-400 hover:text-white px-3 py-1.5 rounded-md border border-slate-700 hover:bg-slate-800 transition-colors cursor-pointer"
+            <div>
+              <h1 className="text-sm font-bold text-white tracking-tight">Infinity Recomp</h1>
+              <p className="text-[11px] text-zinc-400 font-mono">30-Day Heavy Recomposition • {currentDateStr}</p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2.5">
+            <button
+              onClick={() => setIsProfileModalOpen(true)}
+              className="hidden sm:flex items-center gap-1.5 text-xs bg-zinc-800 hover:bg-zinc-700 text-zinc-300 px-3 py-1.5 rounded border border-zinc-700 cursor-pointer font-medium"
             >
-              Reset Week
+              <SlidersHorizontal className="w-3.5 h-3.5 text-emerald-400" />
+              <span>Customize Profile</span>
+            </button>
+
+            <button
+              onClick={toggleSound}
+              className={`p-1.5 rounded border transition-colors cursor-pointer ${
+                !isSoundMuted ? 'bg-zinc-800 text-zinc-300 border-zinc-700' : 'bg-zinc-900 text-zinc-600 border-zinc-800'
+              }`}
+              title="Audio toggle"
+            >
+              {!isSoundMuted ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
+            </button>
+
+            <button
+              onClick={() => launchSession(todayId)}
+              className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs px-3.5 py-1.5 rounded flex items-center gap-1.5 cursor-pointer transition-colors"
+            >
+              <Play className="w-3.5 h-3.5 fill-current" />
+              <span>Start Workout (60m)</span>
             </button>
           </div>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4 xl:grid-cols-4">
-            {WORKOUT_SCHEDULE.map((day) => {
-              const progress = getDayProgress(day.exercises);
-              const isDayComplete = progress.completed === progress.total;
+        </div>
+      </header>
+
+      {/* Main Content */}
+      <main className="max-w-6xl mx-auto px-4 py-6 space-y-6">
+        
+        {/* PERSONALIZED 30-DAY FAT LOSS ROADMAP BANNER */}
+        <section className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 sm:p-5 text-xs">
+          <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-zinc-800">
+            <div className="flex items-center gap-2">
+              <div className="w-6 h-6 rounded bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center">
+                <Target className="w-3.5 h-3.5 text-emerald-400" />
+              </div>
+              <div>
+                <span className="font-bold text-white text-sm">
+                  Your 30-Day Recomp Transformation Target
+                </span>
+                <span className="text-zinc-500 block text-[11px]">
+                  Calibrated to take you from {userProfile.currentWeight}kg to {userProfile.targetWeight}kg (-{userProfile.projectedLossKg}kg fat shred)
+                </span>
+              </div>
+            </div>
+
+            <button
+              onClick={() => setIsProfileModalOpen(true)}
+              className="text-xs text-zinc-300 hover:text-white bg-zinc-800 px-3 py-1.5 rounded border border-zinc-700 cursor-pointer flex items-center gap-1.5"
+            >
+              <SlidersHorizontal className="w-3 h-3 text-emerald-400" />
+              <span>Edit Data & Re-structure</span>
+            </button>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 pt-3">
+            <div>
+              <span className="text-zinc-500 block">30-Day Goal</span>
+              <span className="text-base font-bold text-emerald-400 font-mono">
+                {userProfile.currentWeight}kg → {userProfile.targetWeight}kg
+              </span>
+              <span className="text-[10px] text-zinc-500 block">Target: -{userProfile.projectedLossKg} kg</span>
+            </div>
+
+            <div>
+              <span className="text-zinc-500 block">Protocol Tier</span>
+              <span className="text-base font-bold text-zinc-200 capitalize">
+                {userProfile.fitnessLevel === 'beginner' ? 'Joint-Safe Scaled' : 'Moderate Overload'}
+              </span>
+              <span className="text-[10px] text-zinc-500 block">
+                {userProfile.fitnessLevel === 'beginner' ? 'Knees & wrists protected' : 'Standard weighted progression'}
+              </span>
+            </div>
+
+            <div>
+              <span className="text-zinc-500 block">BMI Adaptation</span>
+              <span className={`text-base font-bold font-mono ${
+                (userProfile.bmi || 0) >= 30 ? 'text-orange-400' : (userProfile.bmi || 0) >= 25 ? 'text-yellow-400' : 'text-emerald-400'
+              }`}>
+                {userProfile.bmi || '—'}
+              </span>
+              <span className="text-[10px] text-zinc-500 block">
+                {(userProfile.bmi || 0) >= 30 ? 'Extra rest + joint safety' : (userProfile.bmi || 0) >= 25 ? 'Moderate rest scaling' : 'Standard intensity'}
+              </span>
+            </div>
+
+            <div>
+              <span className="text-zinc-500 block">Daily Caloric Deficit</span>
+              <span className="text-base font-bold text-zinc-200 font-mono">
+                -{userProfile.dailyDeficit} kcal
+              </span>
+              <span className="text-[10px] text-zinc-500 block">Cap: {userProfile.targetCalories} kcal/day</span>
+            </div>
+
+            <div>
+              <span className="text-zinc-500 block">Daily Protein Shield</span>
+              <span className="text-base font-bold text-zinc-200 font-mono">
+                {userProfile.dailyProtein}g
+              </span>
+              <span className="text-[10px] text-zinc-500 block">Guards muscle while cutting</span>
+            </div>
+          </div>
+        </section>
+
+        {/* Today's Mission Card */}
+        <section className="bg-zinc-900 border border-zinc-800 rounded-xl p-5 space-y-4">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-mono text-zinc-400">
+                  Today • {todayPlan.day}, {todayDateObj?.formattedDate}
+                </span>
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-zinc-800 text-emerald-400 border border-emerald-500/30">
+                  60m Protocol
+                </span>
+              </div>
+              <h2 className="text-2xl font-bold text-white mt-1">
+                {todayPlan.focus}
+              </h2>
+              <p className="text-xs text-zinc-400 mt-1">
+                {todayPlan.exercises.length} Exercises • Target: {todayPlan.targetCalories} burn
+              </p>
+            </div>
+
+            <button
+              onClick={() => launchSession(todayId)}
+              className="bg-zinc-100 hover:bg-white text-zinc-950 font-bold text-xs px-4 py-2.5 rounded flex items-center gap-2 cursor-pointer transition-colors"
+            >
+              <Play className="w-3.5 h-3.5 fill-current" />
+              <span>Launch 1-Hour Protocol</span>
+            </button>
+          </div>
+        </section>
+
+        {/* 7-Day Date & Schedule Strip */}
+        <section className="space-y-3">
+          <div className="flex items-center justify-between text-xs">
+            <div>
+              <h3 className="font-bold text-zinc-300">
+                Weekly Calendar & Schedule
+              </h3>
+              <span className="text-[11px] text-zinc-500 font-mono">
+                Progress: {overallWeekPercentage}% ({totalWeeklyCompleted} of {totalWeeklyExercises} sets completed)
+              </span>
+            </div>
+            <button 
+              onClick={resetProgress}
+              className="text-zinc-500 hover:text-zinc-300 flex items-center gap-1 cursor-pointer"
+            >
+              <RotateCcw className="w-3 h-3" />
+              <span>Reset checkmarks</span>
+            </button>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2">
+            {weekDates.map((weekDay) => {
+              const dayWorkout = structuredSchedule.find(d => d.id === weekDay.dayId);
+              const progress = dayWorkout ? getDayProgress(dayWorkout.exercises) : { completed: 0, total: 0 };
+              const isSelected = weekDay.dayId === selectedDayId;
+              const isToday = weekDay.isToday;
+              const isFinished = progress.completed === progress.total && progress.total > 0;
+
+              return (
+                <button
+                  key={weekDay.dayId}
+                  onClick={() => setSelectedDayId(weekDay.dayId)}
+                  className={`p-3 rounded-lg text-left transition-colors cursor-pointer border flex flex-col justify-between ${
+                    isSelected 
+                      ? 'bg-zinc-800 border-zinc-600 text-white'
+                      : isToday
+                        ? 'bg-zinc-900 border-emerald-500/50'
+                        : 'bg-zinc-900/60 border-zinc-800 hover:border-zinc-700'
+                  }`}
+                >
+                  <div className="flex items-center justify-between text-[11px] mb-1">
+                    <span className="font-mono text-zinc-400">{weekDay.shortName}</span>
+                    {isToday && (
+                      <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-emerald-500 text-zinc-950">
+                        TODAY
+                      </span>
+                    )}
+                    {isFinished && !isToday && (
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                    )}
+                  </div>
+
+                  <div className="text-lg font-bold font-mono text-zinc-100">
+                    {weekDay.dayNumber}
+                  </div>
+
+                  <div className="text-[11px] text-zinc-400 truncate mt-1">
+                    {dayWorkout?.focus}
+                  </div>
+
+                  <div className="w-full h-1 bg-zinc-800 rounded-full mt-2 overflow-hidden">
+                    <div 
+                      className="h-full bg-emerald-500"
+                      style={{ width: `${progress.percentage}%` }}
+                    ></div>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </section>
+
+        {/* Selected Day's Workout List (6 Exercises with Moving GIF Demonstrations) */}
+        <section className="bg-zinc-900 border border-zinc-800 rounded-xl p-5 space-y-5">
+          <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-zinc-800">
+            <div>
+              <span className="text-xs font-mono text-zinc-400">
+                {activeDayPlan.day} • {activeDayDateObj?.formattedDate}
+              </span>
+              <h3 className="text-xl font-bold text-white mt-0.5">
+                {activeDayPlan.focus}
+              </h3>
+            </div>
+
+            <button
+              onClick={() => launchSession(selectedDayId)}
+              className="bg-zinc-800 hover:bg-zinc-700 text-zinc-100 font-bold text-xs px-3.5 py-2 rounded border border-zinc-700 flex items-center gap-1.5 cursor-pointer"
+            >
+              <Play className="w-3.5 h-3.5 fill-current" />
+              <span>Launch 1-Hour Protocol</span>
+            </button>
+          </div>
+
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+            {activeDayPlan.exercises.map((ex, idx) => {
+              const isDone = completedExercises[ex.id];
 
               return (
                 <div 
-                  key={day.id} 
-                  className={`relative flex flex-col bg-slate-900 border rounded-2xl overflow-hidden transition-colors ${
-                    isDayComplete ? 'border-emerald-500/50 bg-emerald-950/10' : 'border-slate-800 hover:border-slate-700'
+                  key={ex.id}
+                  className={`rounded-lg border flex flex-col justify-between overflow-hidden ${
+                    isDone ? 'bg-zinc-950/80 border-emerald-500/30' : 'bg-zinc-950/50 border-zinc-800'
                   }`}
                 >
-                  {/* Card Header */}
-                  <div className={`p-4 border-b ${isDayComplete ? 'border-emerald-500/20 bg-emerald-500/5' : 'border-slate-800'}`}>
-                    <div className="flex justify-between items-center mb-1">
-                      <span className="text-xs font-bold uppercase tracking-wider text-emerald-400">{day.day}</span>
-                      {isDayComplete && <CheckCircle2 className="w-5 h-5 text-emerald-500" />}
-                    </div>
-                    <h4 className="text-lg font-bold text-white">{day.focus}</h4>
-                    
-                    {/* Progress bar */}
-                    <div className="w-full h-1.5 bg-slate-800 rounded-full mt-3 overflow-hidden">
-                      <div 
-                        className="h-full bg-emerald-500 transition-all duration-300 ease-out"
-                        style={{ width: `${progress.percentage}%` }}
-                      ></div>
-                    </div>
+                  <div className="p-3 border-b border-zinc-800/80 flex items-center justify-between text-xs">
+                    <span className="font-mono text-zinc-500">#{idx + 1} • {ex.workMinutes}m</span>
+                    <button
+                      onClick={() => setPreviewExercise(ex)}
+                      className="text-zinc-400 hover:text-white flex items-center gap-1 cursor-pointer font-medium"
+                    >
+                      <Eye className="w-3.5 h-3.5" />
+                      <span>Demo</span>
+                    </button>
                   </div>
 
-                  {/* Card Body (Exercises) */}
-                  <div className="p-4 flex-grow space-y-3">
-                    {day.exercises.map((ex) => {
-                      const isDone = completedExercises[ex.id];
-                      return (
-                        <div 
-                          key={ex.id}
-                          onClick={() => toggleExercise(ex.id)}
-                          className="flex items-start gap-3 cursor-pointer group"
-                        >
-                          <button className="mt-0.5 flex-shrink-0 text-slate-500 group-hover:text-emerald-400 transition-colors cursor-pointer">
-                            {isDone ? (
-                              <CheckCircle2 className="w-5 h-5 text-emerald-500" />
-                            ) : (
-                              <Circle className="w-5 h-5" />
-                            )}
-                          </button>
-                          <div>
-                            <p className={`text-sm font-semibold transition-colors ${isDone ? 'text-slate-500 line-through' : 'text-slate-200 group-hover:text-white'}`}>
-                              {ex.name}
-                            </p>
-                            <p className="text-xs text-slate-500 mt-0.5">{ex.sets}</p>
-                          </div>
-                        </div>
-                      );
-                    })}
+                  {/* Real Moving GIF Animation */}
+                  <div 
+                    onClick={() => setPreviewExercise(ex)}
+                    className="p-3 bg-zinc-950 cursor-pointer"
+                    title="Click for full view"
+                  >
+                    <ExerciseVisualizer
+                      animationType={ex.animationType}
+                      name={ex.name}
+                      primaryMuscles={ex.primaryMuscles}
+                      equipment={ex.equipment}
+                      animGifUrl={ex.animGifUrl}
+                      realImages={ex.realImages}
+                      isScaledForBeginner={ex.isScaledForBeginner}
+                    />
                   </div>
+
+                  <div className="p-3 bg-zinc-900 flex-grow flex flex-col justify-between space-y-3">
+                    <div>
+                      <h4 className="text-sm font-bold text-zinc-100">{ex.name}</h4>
+                      <p className="text-xs text-zinc-400 font-mono mt-0.5">{ex.sets}</p>
+                    </div>
+
+                    <button
+                      onClick={() => toggleExercise(ex.id)}
+                      className={`w-full py-2 px-3 rounded text-xs font-semibold flex items-center justify-center gap-2 cursor-pointer transition-colors ${
+                        isDone 
+                          ? 'bg-zinc-800 text-emerald-400 border border-emerald-500/30' 
+                          : 'bg-zinc-800 hover:bg-zinc-700 text-zinc-300 border border-zinc-700'
+                      }`}
+                    >
+                      {isDone ? (
+                        <>
+                          <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                          <span>Done</span>
+                        </>
+                      ) : (
+                        <>
+                          <Circle className="w-4 h-4 text-zinc-500" />
+                          <span>Mark Done</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+
                 </div>
               );
             })}
           </div>
         </section>
 
+        {/* Minimal Equipment Guide */}
+        <section className="space-y-3">
+          <div className="flex items-center gap-2 text-xs font-bold text-zinc-300">
+            <Dumbbell className="w-4 h-4 text-zinc-400" />
+            <span>Household Arsenal Guide</span>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-3 text-xs">
+            {EQUIPMENT_GUIDE.map((item, idx) => (
+              <div key={idx} className="bg-zinc-900 border border-zinc-800 p-4 rounded-lg space-y-1">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="p-2 bg-zinc-800 rounded">
+                    {getEquipmentIcon(item.iconName)}
+                  </div>
+                  <span className="font-mono text-zinc-500 text-[11px]">{item.badge}</span>
+                </div>
+                <h5 className="font-bold text-zinc-200">{item.title}</h5>
+                <p className="text-zinc-400 leading-snug">{item.description}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+
       </main>
 
-      {/* Footer */}
-      <footer className="border-t border-slate-800 bg-slate-900 py-8 mt-12 text-center text-slate-500 text-sm">
-        <p>Infinity Home Recomp • Stay Consistent. Eat Protein. Push Hard.</p>
+      <footer className="border-t border-zinc-800 text-center py-6 text-xs text-zinc-500">
+        Infinity Recomp • 30-Day Heavy Body Recomposition • High Protein • Progressive Overload
       </footer>
     </div>
   );
